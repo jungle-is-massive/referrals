@@ -1005,6 +1005,7 @@ Happy to grab 20 minutes if useful.
       navTabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tabId));
       views.forEach(view => view.classList.toggle('active', view.id === tabId));
       window.scrollTo({ top: 0, behavior: 'smooth' });
+      history.replaceState(null,'','#'+tabId);
     }
 
     navTabButtons.forEach(btn => {
@@ -1013,6 +1014,15 @@ Happy to grab 20 minutes if useful.
 
     directTabButtons.forEach(btn => {
       btn.addEventListener('click', () => openTab(btn.dataset.tabTarget));
+    });
+
+    // Hash routing
+    const validReferralTabs = ['dashboard','prospects','messages','how'];
+    const initHash = window.location.hash.replace('#','');
+    if(validReferralTabs.includes(initHash)) openTab(initHash);
+    window.addEventListener('hashchange', () => {
+      const h = window.location.hash.replace('#','');
+      if(validReferralTabs.includes(h)) openTab(h);
     });
 
     clientHeaders.forEach(header => {
