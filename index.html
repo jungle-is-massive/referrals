@@ -259,6 +259,29 @@
     .status-responded { background: #D8FFB8; color: #2A6000; }
     .status-no-response { background: #FFE0E0; color: #8A0000; }
     .status-meeting { background: #FFF3C4; color: #7A5500; }
+    .status-proposal { background: #E6E0FF; color: #4A2D9C; }
+    .status-won { background: var(--green); color: var(--black); font-weight: 600; }
+    .pill-hot { background: #FFE0E0; color: #B00000; border: 1px solid rgba(255,77,77,0.3); }
+    .pill-warm { background: #FFF3E0; color: #8A4500; border: 1px solid rgba(245,166,35,0.3); }
+    .pill-cool { background: #E0F0FF; color: #0A5A8A; border: 1px solid rgba(74,144,217,0.3); }
+    .pill-mapping { background: #EFEDE7; color: #6A6960; border: 1px solid var(--border); font-size: 9px; letter-spacing: 0.3px; }
+
+    .row-actions { display: flex; gap: 4px; justify-content: flex-end; opacity: 0; transition: opacity 0.12s; }
+    .proj-row:hover .row-actions { opacity: 1; }
+    .row-action {
+      border: 1px solid var(--border-strong); background: #fff; color: var(--grey);
+      width: 26px; height: 26px; border-radius: 7px; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center; padding: 0;
+      transition: all 0.12s;
+    }
+    .row-action:hover { color: var(--black); border-color: var(--black); background: #fafaf8; }
+    .row-action.danger:hover { color: var(--red); border-color: var(--red); background: #fff5f5; }
+    .row-action svg { width: 13px; height: 13px; }
+    @media (hover: none) { .row-actions { opacity: 1; } }
+
+    .loading-state { padding: 26px 18px; font-size: 13px; color: var(--grey); text-align: center; }
+    .spin { display:inline-block; width:13px; height:13px; border:2px solid var(--border-strong); border-top-color: var(--black); border-radius:50%; animation: spin 0.7s linear infinite; vertical-align:-2px; margin-right:7px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     .client-block {
       margin-bottom: 12px;
@@ -301,7 +324,7 @@
 
     .proj-row {
       display: grid;
-      grid-template-columns: 28px 1.15fr 120px 120px 120px 90px;
+      grid-template-columns: 28px 1.2fr 108px 104px 124px 64px 66px;
       align-items: center; gap: 10px;
       padding: 11px 18px;
       border-bottom: 1px solid var(--border);
@@ -315,7 +338,7 @@
       font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px;
       color: var(--grey); padding: 8px 18px;
       display: grid;
-      grid-template-columns: 28px 1.15fr 120px 120px 120px 90px;
+      grid-template-columns: 28px 1.2fr 108px 104px 124px 64px 66px;
       gap: 10px;
       background: #fafaf8;
       border-bottom: 1px solid var(--border);
@@ -536,9 +559,9 @@
       .summary-strip { flex-direction: column; }
       .summary-item { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.06); }
       .summary-item:last-child { border-bottom: none; }
-      .proj-row, .proj-row-header { grid-template-columns: 1fr auto; }
-      .proj-row > *:nth-child(n+3):not(:last-child) { display: none; }
-      .proj-row-header > *:nth-child(n+3) { display: none; }
+      .proj-row, .proj-row-header { grid-template-columns: 1fr auto auto; gap: 8px; }
+      .proj-row > *:nth-child(1), .proj-row > *:nth-child(3), .proj-row > *:nth-child(4), .proj-row > *:nth-child(6),
+      .proj-row-header > *:nth-child(1), .proj-row-header > *:nth-child(3), .proj-row-header > *:nth-child(4), .proj-row-header > *:nth-child(6) { display: none; }
       .client-meta { display: none; }
       .mini-row { grid-template-columns: 1fr; gap: 8px; }
       .search-wrap { margin-left: 0; width: 100%; }
@@ -626,16 +649,16 @@
         <div class="summary-val"><strong>2</strong> contacts <span class="accent">per person</span></div>
       </div>
       <div class="summary-item">
-        <div class="summary-label">Logged this month</div>
-        <div class="summary-val"><strong>18</strong> intros</div>
+        <div class="summary-label">Prospects listed</div>
+        <div class="summary-val"><strong id="sumListed">–</strong> total</div>
       </div>
       <div class="summary-item">
-        <div class="summary-label">Replies</div>
-        <div class="summary-val"><strong>7</strong> active conversations</div>
+        <div class="summary-label">Reached out</div>
+        <div class="summary-val"><strong id="sumReached">–</strong> in motion</div>
       </div>
       <div class="summary-item">
-        <div class="summary-label">Meetings booked</div>
-        <div class="summary-val"><strong>3</strong> warm meetings</div>
+        <div class="summary-label">Meetings &amp; beyond</div>
+        <div class="summary-val"><strong id="sumMeetings">–</strong> live</div>
       </div>
     </section>
 
@@ -646,11 +669,11 @@
           <div class="card-sub">The habit we want to build is simple: reach out to 2 people you already know every month.</div>
           <div class="progress-wrap">
             <div class="progress-meta">
-              <span>You’ve reached out to 1 of 2 people this month</span>
-              <strong>50%</strong>
+              <span id="progressLabel">Loading momentum…</span>
+              <strong id="progressPct">–</strong>
             </div>
             <div class="progress-track">
-              <div class="progress-bar"></div>
+              <div class="progress-bar" id="progressBar" style="width:0%"></div>
             </div>
           </div>
           <div class="quick-actions">
@@ -685,25 +708,8 @@
         <div class="card">
           <div class="card-title">Recent activity</div>
           <div class="card-sub">A lightweight summary of what’s moving.</div>
-          <div class="mini-table">
-            <div class="mini-row">
-              <div><strong>Harriet Reynolds</strong><br><span style="color:var(--grey)">Anytime Fitness</span></div>
-              <div><span class="pill pill-strong">Strong relationship</span></div>
-              <div><span class="pill status-responded">Responded</span></div>
-              <div><button class="btn-ghost" data-tab-target="messages">Copy follow-up</button></div>
-            </div>
-            <div class="mini-row">
-              <div><strong>Laura Finch</strong><br><span style="color:var(--grey)">Wagamama</span></div>
-              <div><span class="pill pill-medium">Medium relationship</span></div>
-              <div><span class="pill status-reached">Reached out</span></div>
-              <div><button class="btn-ghost open-add-prospect">Add another</button></div>
-            </div>
-            <div class="mini-row">
-              <div><strong>Chris Mather</strong><br><span style="color:var(--grey)">Schwartz</span></div>
-              <div><span class="pill pill-loose">Loose connection</span></div>
-              <div><span class="pill status-identified">Identified</span></div>
-              <div><button class="btn-ghost" data-tab-target="messages">Copy intro</button></div>
-            </div>
+          <div class="mini-table" id="recentActivity">
+            <div class="loading-state"><span class="spin"></span>Loading…</div>
           </div>
         </div>
 
@@ -737,10 +743,10 @@
       <div class="client-block open">
         <div class="client-header">
           <div class="client-chevron">›</div>
-          <div class="client-name">Priority contacts</div>
+          <div class="client-name">All prospects</div>
           <div class="client-meta">
-            <div class="client-stat"><strong id="mappedCount">4</strong> mapped</div>
-            <div class="client-stat"><strong id="inMotionCount">3</strong> in motion</div>
+            <div class="client-stat"><strong id="mappedCount">–</strong> listed</div>
+            <div class="client-stat"><strong id="inMotionCount">–</strong> in motion</div>
           </div>
         </div>
         <div class="projects-table">
@@ -751,51 +757,10 @@
             <div>Relationship</div>
             <div>Status</div>
             <div>Last touch</div>
+            <div style="text-align:right">Actions</div>
           </div>
-          <div class="proj-row" data-strength="strong" data-status="responded" data-search="harriet reynolds anytime fitness worked closely together warm relationship now at anytime fitness">
-            <div class="proj-index">01</div>
-            <div>
-              <div class="proj-name-text">Harriet Reynolds</div>
-              <div class="proj-note">Worked closely together, warm relationship, now at Anytime Fitness.</div>
-            </div>
-            <div class="proj-note">Anytime Fitness</div>
-            <div><span class="pill pill-strong">Strong</span></div>
-            <div><span class="pill status-responded">Responded</span></div>
-            <div class="proj-note">2 Apr</div>
-          </div>
-          <div class="proj-row" data-strength="medium" data-status="reached" data-search="laura finch wagamama past client contact good relationship but slightly more formal">
-            <div class="proj-index">02</div>
-            <div>
-              <div class="proj-name-text">Laura Finch</div>
-              <div class="proj-note">Past client contact. Good relationship but slightly more formal.</div>
-            </div>
-            <div class="proj-note">Wagamama</div>
-            <div><span class="pill pill-medium">Medium</span></div>
-            <div><span class="pill status-reached">Reached out</span></div>
-            <div class="proj-note">6 Apr</div>
-          </div>
-          <div class="proj-row" data-strength="loose" data-status="identified" data-search="chris mather schwartz a few past interactions enough for a light reconnect">
-            <div class="proj-index">03</div>
-            <div>
-              <div class="proj-name-text">Chris Mather</div>
-              <div class="proj-note">A few past interactions. Enough for a light reconnect.</div>
-            </div>
-            <div class="proj-note">Schwartz</div>
-            <div><span class="pill pill-loose">Loose</span></div>
-            <div><span class="pill status-identified">Identified</span></div>
-            <div class="proj-note">-</div>
-          </div>
-          <div class="proj-row" data-strength="medium" data-status="meeting" data-search="georgia lane e1 series ex client contact recently moved worth a warm check in">
-            <div class="proj-index">04</div>
-            <div>
-              <div class="proj-name-text">Georgia Lane</div>
-              <div class="proj-note">Ex-client contact. Recently moved. Worth a warm check-in.</div>
-            </div>
-            <div class="proj-note">E1 Series</div>
-            <div><span class="pill pill-medium">Medium</span></div>
-            <div><span class="pill status-meeting">Meeting booked</span></div>
-            <div class="proj-note">8 Apr</div>
-          </div>
+          <div id="prospectsBody"></div>
+          <div class="loading-state" id="prospectsLoading"><span class="spin"></span>Loading prospects…</div>
           <div class="no-results" id="noProspectResults">No prospects match this filter or search.</div>
         </div>
       </div>
@@ -954,16 +919,22 @@ Happy to grab 20 minutes if useful.
       <form id="addProspectForm">
         <div class="form-grid">
           <div class="field">
-            <label for="prospectName">Full name</label>
-            <input id="prospectName" name="prospectName" type="text" required />
+            <label for="prospectName">Full name <span style="color:var(--grey);font-weight:400">(optional)</span></label>
+            <input id="prospectName" name="prospectName" type="text" />
           </div>
           <div class="field">
             <label for="companyName">Company</label>
             <input id="companyName" name="companyName" type="text" required />
           </div>
           <div class="field">
+            <label for="ownerName">Your name <span style="color:var(--grey);font-weight:400">(who owns this)</span></label>
+            <input id="ownerName" name="ownerName" type="text" list="ownerOptions" autocomplete="off" placeholder="Start typing…" required />
+            <datalist id="ownerOptions"></datalist>
+          </div>
+          <div class="field">
             <label for="relationshipStrength">Relationship strength</label>
-            <select id="relationshipStrength" name="relationshipStrength" required>
+            <select id="relationshipStrength" name="relationshipStrength">
+              <option value="">Not set</option>
               <option value="strong">Strong</option>
               <option value="medium">Medium</option>
               <option value="loose">Loose</option>
@@ -977,6 +948,8 @@ Happy to grab 20 minutes if useful.
               <option value="responded">Responded</option>
               <option value="no-response">No response</option>
               <option value="meeting">Meeting booked</option>
+              <option value="proposal">Responding to Proposal</option>
+              <option value="won">New Client Won</option>
             </select>
           </div>
           <div class="field span-2">
@@ -1064,140 +1037,265 @@ Happy to grab 20 minutes if useful.
       tab.addEventListener('click', () => setChannel(tab.dataset.channel));
     });
 
-    const filterPills = document.querySelectorAll('.filter-pill');
-    const prospectRows = Array.from(document.querySelectorAll('.proj-row'));
-    const searchInput = document.getElementById('prospectSearch');
-    const noProspectResults = document.getElementById('noProspectResults');
-    const mappedCount = document.getElementById('mappedCount');
-    const inMotionCount = document.getElementById('inMotionCount');
-    let activeFilter = 'all';
+    /* ============ Supabase data layer ============ */
+    const SB_URL = 'https://iehkvlyjumkzccoqqgxl.supabase.co';
+    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImllaGt2bHlqdW1remNjb3FxZ3hsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MTMwNzYsImV4cCI6MjA5MTM4OTA3Nn0.pF9K9aBwWN10JRT_ODTLPzsdPKH3X0CW30WrPMn9lGs';
+    const SB_REST = SB_URL + '/rest/v1/referral_prospects';
+    const SB_H = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' };
 
-    function matchesFilter(row, filter) {
-      const strength = row.dataset.strength;
-      const status = row.dataset.status;
+    async function sbAll() {
+      const r = await fetch(SB_REST + '?select=*&order=updated_at.desc', { headers: SB_H });
+      if (!r.ok) throw new Error('load ' + r.status);
+      return r.json();
+    }
+    async function sbInsert(obj) {
+      const r = await fetch(SB_REST, { method: 'POST', headers: { ...SB_H, 'Prefer': 'return=representation' }, body: JSON.stringify(obj) });
+      if (!r.ok) throw new Error('insert ' + r.status);
+      return (await r.json())[0];
+    }
+    async function sbUpdate(id, obj) {
+      const r = await fetch(SB_REST + '?id=eq.' + id, { method: 'PATCH', headers: { ...SB_H, 'Prefer': 'return=representation' }, body: JSON.stringify(obj) });
+      if (!r.ok) throw new Error('update ' + r.status);
+      return (await r.json())[0];
+    }
+    async function sbDelete(id) {
+      const r = await fetch(SB_REST + '?id=eq.' + id, { method: 'DELETE', headers: SB_H });
+      if (!r.ok) throw new Error('delete ' + r.status);
+    }
 
-      if (filter === 'all') return true;
-      if (filter === 'strong' || filter === 'medium' || filter === 'loose') return strength === filter;
-      if (filter === 'reached') return status === 'reached';
-      if (filter === 'responded') return status === 'responded';
+    /* ============ State + helpers ============ */
+    const state = { prospects: [], filter: 'all', search: '', editingId: null };
+    const ACTIONED = ['reached', 'responded', 'meeting', 'proposal', 'won'];
+
+    const STATUS_LABELS = {
+      'identified': 'Identified', 'reached': 'Reached out', 'responded': 'Responded',
+      'no-response': 'No response', 'meeting': 'Meeting booked',
+      'proposal': 'Responding to Proposal', 'won': 'New Client Won'
+    };
+    const ICON_EDIT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>';
+    const ICON_DEL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path></svg>';
+
+    function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+    function esc(s) { return (s == null ? '' : String(s)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+    function fmtDate(d) { if (!d) return '–'; try { return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); } catch (e) { return '–'; } }
+    function tidyName(n) { return n.trim().replace(/\s+/g, ' ').replace(/\b\w/g, c => c.toUpperCase()); }
+    function statusPill(s) { return `<span class="pill status-${s || 'identified'}">${STATUS_LABELS[s] || 'Identified'}</span>`; }
+    function strengthPill(p) {
+      if (p.relationship_strength) return `<span class="pill pill-${p.relationship_strength}">${cap(p.relationship_strength)}</span>`;
+      if (p.temp) return `<span class="pill pill-${p.temp}">${cap(p.temp)}</span>`;
+      return `<span class="pill pill-mapping">—</span>`;
+    }
+
+    function matchesFilter(p) {
+      const f = state.filter;
+      if (f === 'all') return true;
+      if (f === 'strong' || f === 'medium' || f === 'loose') return p.relationship_strength === f;
+      if (f === 'reached') return ACTIONED.includes(p.status);
+      if (f === 'responded') return ['responded', 'meeting', 'proposal', 'won'].includes(p.status);
       return true;
     }
-
-    function applyProspectFilters() {
-      const query = searchInput.value.trim().toLowerCase();
-      let visibleCount = 0;
-      let motionCount = 0;
-
-      prospectRows.forEach(row => {
-        const matchesSearch = row.dataset.search.includes(query);
-        const visible = matchesFilter(row, activeFilter) && matchesSearch;
-        row.classList.toggle('hidden', !visible);
-        if (visible) {
-          visibleCount += 1;
-          if (['reached', 'responded', 'meeting'].includes(row.dataset.status)) {
-            motionCount += 1;
-          }
-        }
-      });
-
-      mappedCount.textContent = String(visibleCount);
-      inMotionCount.textContent = String(motionCount);
-      noProspectResults.classList.toggle('show', visibleCount === 0);
+    function matchesSearch(p) {
+      if (!state.search) return true;
+      return `${p.contact_name || ''} ${p.company || ''} ${p.owner || ''} ${p.context || ''}`.toLowerCase().includes(state.search);
     }
 
-    filterPills.forEach(pill => {
+    /* ============ Render: prospects ============ */
+    function renderProspects() {
+      const body = document.getElementById('prospectsBody');
+      document.getElementById('prospectsLoading').style.display = 'none';
+      const list = state.prospects.filter(p => matchesFilter(p) && matchesSearch(p));
+      body.innerHTML = list.map((p, i) => {
+        const idx = String(i + 1).padStart(2, '0');
+        const headline = p.contact_name ? esc(p.contact_name) : esc(p.company);
+        const note = p.context ? esc(p.context) : (p.contact_name ? esc(p.company) : 'Brand target');
+        return `<div class="proj-row" data-id="${p.id}">
+          <div class="proj-index">${idx}</div>
+          <div><div class="proj-name-text">${headline}</div><div class="proj-note">${note}</div></div>
+          <div class="proj-note">${esc(p.company)}</div>
+          <div>${strengthPill(p)}</div>
+          <div>${statusPill(p.status)}</div>
+          <div class="proj-note">${fmtDate(p.last_touch)}</div>
+          <div class="row-actions">
+            <button class="row-action" data-edit="${p.id}" title="Edit" aria-label="Edit">${ICON_EDIT}</button>
+            <button class="row-action danger" data-del="${p.id}" title="Delete" aria-label="Delete">${ICON_DEL}</button>
+          </div>
+        </div>`;
+      }).join('');
+      document.getElementById('noProspectResults').classList.toggle('show', list.length === 0);
+      document.getElementById('mappedCount').textContent = state.prospects.length;
+      document.getElementById('inMotionCount').textContent = state.prospects.filter(p => ACTIONED.includes(p.status)).length;
+      bindRowActions();
+    }
+
+    function bindRowActions() {
+      document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => {
+        const p = state.prospects.find(x => x.id === b.dataset.edit);
+        if (p) openModal(p);
+      });
+      document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+        const p = state.prospects.find(x => x.id === b.dataset.del);
+        if (!p) return;
+        if (!confirm(`Delete "${p.contact_name || p.company}"? This cannot be undone.`)) return;
+        try { await sbDelete(p.id); await loadData(); showToast('Prospect deleted'); }
+        catch (e) { console.error(e); showToast('Could not delete — try again'); }
+      });
+    }
+
+    /* ============ Render: dashboard ============ */
+    function renderDashboard() {
+      const P = state.prospects;
+      const reached = P.filter(p => ACTIONED.includes(p.status)).length;
+      const meetingsPlus = P.filter(p => ['meeting', 'proposal', 'won'].includes(p.status)).length;
+      document.getElementById('sumListed').textContent = P.length;
+      document.getElementById('sumReached').textContent = reached;
+      document.getElementById('sumMeetings').textContent = meetingsPlus;
+      const pct = P.length ? Math.round(reached / P.length * 100) : 0;
+      document.getElementById('progressPct').textContent = pct + '%';
+      document.getElementById('progressBar').style.width = pct + '%';
+      document.getElementById('progressLabel').textContent = `${reached} of ${P.length} prospects actioned`;
+      const recent = P.slice(0, 4);
+      const ra = document.getElementById('recentActivity');
+      if (!recent.length) { ra.innerHTML = '<div class="loading-state">No activity yet. Add a prospect to get started.</div>'; return; }
+      ra.innerHTML = recent.map(p => {
+        const headline = p.contact_name ? esc(p.contact_name) : esc(p.company);
+        return `<div class="mini-row">
+          <div><strong>${headline}</strong><br><span style="color:var(--grey)">${esc(p.company)}</span></div>
+          <div>${strengthPill(p)}</div>
+          <div>${statusPill(p.status)}</div>
+          <div><span style="color:var(--grey);font-size:11px">${p.owner ? esc(p.owner) : ''}</span></div>
+        </div>`;
+      }).join('');
+    }
+
+    function refreshOwnerOptions() {
+      const owners = [...new Set(state.prospects.map(p => p.owner).filter(Boolean))].sort();
+      document.getElementById('ownerOptions').innerHTML = owners.map(o => `<option value="${esc(o)}"></option>`).join('');
+    }
+
+    async function loadData() {
+      try {
+        state.prospects = await sbAll();
+      } catch (e) {
+        console.error(e);
+        const l = document.getElementById('prospectsLoading');
+        if (l) { l.style.display = 'block'; l.innerHTML = 'Could not load prospects. Refresh to retry.'; }
+        return;
+      }
+      refreshOwnerOptions();
+      renderProspects();
+      renderDashboard();
+    }
+
+    /* ============ Filters + search ============ */
+    document.querySelectorAll('.filter-pill').forEach(pill => {
       pill.addEventListener('click', () => {
-        activeFilter = pill.dataset.filter;
-        filterPills.forEach(btn => btn.classList.toggle('active', btn === pill));
-        applyProspectFilters();
+        document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        state.filter = pill.dataset.filter;
+        renderProspects();
       });
     });
+    document.getElementById('prospectSearch').addEventListener('input', e => {
+      state.search = e.target.value.trim().toLowerCase();
+      renderProspects();
+    });
 
-    searchInput.addEventListener('input', applyProspectFilters);
-
+    /* ============ Modal: add / edit ============ */
     const addProspectModal = document.getElementById('addProspectModal');
-    const openAddProspectTop = document.getElementById('openAddProspectTop');
-    const openAddProspectButtons = document.querySelectorAll('.open-add-prospect');
-    const closeAddProspect = document.getElementById('closeAddProspect');
-    const cancelAddProspect = document.getElementById('cancelAddProspect');
     const addProspectForm = document.getElementById('addProspectForm');
-
-    function openAddProspectModal() {
+    function openModal(editing) {
+      state.editingId = editing ? editing.id : null;
+      document.getElementById('addProspectTitle').textContent = editing ? 'Edit prospect' : 'Add prospect';
+      addProspectForm.querySelector('.btn-save').textContent = editing ? 'Save changes' : 'Save prospect';
+      document.getElementById('prospectName').value = editing ? (editing.contact_name || '') : '';
+      document.getElementById('companyName').value = editing ? (editing.company || '') : '';
+      document.getElementById('ownerName').value = editing ? (editing.owner || '') : '';
+      document.getElementById('relationshipStrength').value = editing ? (editing.relationship_strength || '') : '';
+      document.getElementById('prospectStatus').value = editing ? (editing.status || 'identified') : 'identified';
+      document.getElementById('relationshipContext').value = editing ? (editing.context || '') : '';
       addProspectModal.classList.add('open');
     }
+    function closeModal() { addProspectModal.classList.remove('open'); state.editingId = null; }
+    document.getElementById('openAddProspectTop').addEventListener('click', () => openModal(null));
+    document.querySelectorAll('.open-add-prospect').forEach(b => b.addEventListener('click', () => openModal(null)));
+    document.getElementById('closeAddProspect').addEventListener('click', closeModal);
+    document.getElementById('cancelAddProspect').addEventListener('click', closeModal);
+    addProspectModal.addEventListener('click', e => { if (e.target === addProspectModal) closeModal(); });
 
-    function closeAddProspectModal() {
-      addProspectModal.classList.remove('open');
-    }
-
-    openAddProspectTop.addEventListener('click', openAddProspectModal);
-    openAddProspectButtons.forEach(btn => btn.addEventListener('click', openAddProspectModal));
-    closeAddProspect.addEventListener('click', closeAddProspectModal);
-    cancelAddProspect.addEventListener('click', closeAddProspectModal);
-    addProspectModal.addEventListener('click', (e) => {
-      if (e.target === addProspectModal) closeAddProspectModal();
-    });
-
-    function getStrengthClass(value) {
-      return value === 'strong' ? 'pill-strong' : value === 'medium' ? 'pill-medium' : 'pill-loose';
-    }
-
-    function getStatusMarkup(value) {
-      const map = {
-        'identified': '<span class="pill status-identified">Identified</span>',
-        'reached': '<span class="pill status-reached">Reached out</span>',
-        'responded': '<span class="pill status-responded">Responded</span>',
-        'no-response': '<span class="pill status-no-response">No response</span>',
-        'meeting': '<span class="pill status-meeting">Meeting booked</span>'
-      };
-      return map[value] || '<span class="pill status-identified">Identified</span>';
-    }
-
-    function getStrengthLabel(value) {
-      return value.charAt(0).toUpperCase() + value.slice(1);
-    }
-
-    addProspectForm.addEventListener('submit', (e) => {
+    addProspectForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-
-      const name = document.getElementById('prospectName').value.trim();
+      const editingId = state.editingId;
+      const saveBtn = addProspectForm.querySelector('.btn-save');
       const company = document.getElementById('companyName').value.trim();
-      const strength = document.getElementById('relationshipStrength').value;
+      const ownerRaw = document.getElementById('ownerName').value.trim();
+      if (!company || !ownerRaw) { showToast('Company and your name are required'); return; }
       const status = document.getElementById('prospectStatus').value;
-      const context = document.getElementById('relationshipContext').value.trim() || 'Newly added prospect.';
-
-      const projectsTable = document.querySelector('.projects-table');
-      const currentRows = Array.from(document.querySelectorAll('.proj-row'));
-      const rowNumber = String(currentRows.length + 1).padStart(2, '0');
-
-      const row = document.createElement('div');
-      row.className = 'proj-row';
-      row.dataset.strength = strength;
-      row.dataset.status = status;
-      row.dataset.search = `${name} ${company} ${context}`.toLowerCase();
-      row.innerHTML = `
-        <div class="proj-index">${rowNumber}</div>
-        <div>
-          <div class="proj-name-text">${name}</div>
-          <div class="proj-note">${context}</div>
-        </div>
-        <div class="proj-note">${company}</div>
-        <div><span class="pill ${getStrengthClass(strength)}">${getStrengthLabel(strength)}</span></div>
-        <div>${getStatusMarkup(status)}</div>
-        <div class="proj-note">Today</div>
-      `;
-
-      projectsTable.insertBefore(row, noProspectResults);
-      addProspectForm.reset();
-      closeAddProspectModal();
-      showToast('Prospect added');
-      applyProspectFilters();
+      const payload = {
+        contact_name: document.getElementById('prospectName').value.trim() || null,
+        company: company,
+        owner: tidyName(ownerRaw),
+        relationship_strength: document.getElementById('relationshipStrength').value || null,
+        status: status,
+        context: document.getElementById('relationshipContext').value.trim() || null,
+        updated_at: new Date().toISOString()
+      };
+      saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
+      try {
+        if (editingId) {
+          const prev = state.prospects.find(p => p.id === editingId);
+          if (ACTIONED.includes(status)) payload.last_touch = new Date().toISOString().slice(0, 10);
+          await sbUpdate(editingId, payload);
+          if (status === 'won' && prev && prev.status !== 'won') celebrate();
+        } else {
+          payload.source = 'manual';
+          payload.last_touch = ACTIONED.includes(status) ? new Date().toISOString().slice(0, 10) : null;
+          await sbInsert(payload);
+          if (status === 'won') celebrate();
+        }
+        await loadData();
+        closeModal();
+        addProspectForm.reset();
+        showToast(editingId ? 'Prospect updated' : 'Prospect added');
+      } catch (err) {
+        console.error(err);
+        showToast('Could not save — try again');
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = state.editingId ? 'Save changes' : 'Save prospect';
+      }
     });
 
-    applyProspectFilters();
+    /* ============ Confetti ============ */
+    function celebrate() {
+      const c = document.createElement('canvas');
+      c.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9999';
+      c.width = window.innerWidth; c.height = window.innerHeight;
+      document.body.appendChild(c);
+      const ctx = c.getContext('2d');
+      const colors = ['#8BFF57', '#F5A623', '#4A90D9', '#9B6DFF', '#FF4D4D', '#ffffff'];
+      const parts = [];
+      for (let i = 0; i < 160; i++) parts.push({
+        x: window.innerWidth / 2, y: window.innerHeight / 3,
+        vx: (Math.random() - 0.5) * 16, vy: Math.random() * -16 - 4,
+        g: 0.3 + Math.random() * 0.2, s: 5 + Math.random() * 7,
+        col: colors[i % colors.length], rot: Math.random() * 6, vr: (Math.random() - 0.5) * 0.5
+      });
+      let t = 0;
+      (function tick() {
+        t++; ctx.clearRect(0, 0, c.width, c.height);
+        parts.forEach(p => {
+          p.vy += p.g; p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+          ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+          ctx.fillStyle = p.col; ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.6); ctx.restore();
+        });
+        if (t < 150) requestAnimationFrame(tick); else c.remove();
+      })();
+    }
+
+    /* ============ Init ============ */
     setChannel('linkedin');
+    loadData();
   </script>
-  <script src="https://jungle-is-massive.github.io/hub/hub-overlay.js" defer></script>
 <script>
 
   const GATE_PASSWORD = 'massive';
