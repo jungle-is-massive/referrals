@@ -283,6 +283,43 @@
     .spin { display:inline-block; width:13px; height:13px; border:2px solid var(--border-strong); border-top-color: var(--black); border-radius:50%; animation: spin 0.7s linear infinite; vertical-align:-2px; margin-right:7px; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* ---------- Leaderboard ---------- */
+    .lb-switcher { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:4px; }
+    .lb-tab { border:1px solid var(--border-strong); background:#fff; color:var(--grey); font-family:inherit; font-size:12px; padding:8px 14px; border-radius:20px; cursor:pointer; transition:all .14s; white-space:nowrap; }
+    .lb-tab:hover { color:var(--black); border-color:var(--black); }
+    .lb-tab.active { background:var(--black); color:var(--green); border-color:var(--black); }
+    .lb-caption { font-size:13px; color:var(--grey); margin:14px 0 26px; }
+
+    .lb-podium { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; align-items:end; max-width:640px; margin:0 auto 34px; min-height:236px; }
+    .podium-slot { display:flex; flex-direction:column; align-items:center; opacity:0; transform:translateY(26px); }
+    .podium-slot.in { opacity:1; transform:translateY(0); transition:all .55s cubic-bezier(.2,.8,.2,1); }
+    .podium-av { width:62px; height:62px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:19px; font-weight:600; color:var(--black); margin-bottom:10px; position:relative; box-shadow:0 6px 18px rgba(17,17,16,.12); }
+    .podium-name { font-size:14px; font-weight:600; text-align:center; line-height:1.2; }
+    .podium-val { font-size:13px; color:var(--grey); margin-top:3px; }
+    .podium-bar { width:100%; border-radius:12px 12px 0 0; margin-top:12px; display:flex; align-items:flex-start; justify-content:center; padding-top:8px; font-size:20px; }
+    .podium-rank-1 .podium-bar { height:128px; background:linear-gradient(180deg,var(--green),rgba(139,255,87,.4)); }
+    .podium-rank-2 .podium-bar { height:94px; background:linear-gradient(180deg,#E6E2D7,#F0EDE5); }
+    .podium-rank-3 .podium-bar { height:70px; background:linear-gradient(180deg,#F3D9C0,#F8E8DA); }
+    .podium-rank-1 .podium-av { background:var(--green); }
+    .podium-rank-2 .podium-av { background:#E6E2D7; }
+    .podium-rank-3 .podium-av { background:#F3D9C0; color:#8A5A3A; }
+    .crown { position:absolute; top:-21px; left:50%; transform:translateX(-50%); font-size:22px; animation:crownb 1.5s ease-in-out infinite; }
+    @keyframes crownb { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(-4px)} }
+    .medal { position:absolute; bottom:-5px; right:-5px; font-size:17px; filter:drop-shadow(0 1px 1px rgba(0,0,0,.2)); }
+
+    .lb-list { max-width:640px; margin:0 auto; display:flex; flex-direction:column; gap:8px; }
+    .lb-row { display:grid; grid-template-columns:32px 38px 1fr auto; align-items:center; gap:12px; padding:11px 16px; background:#fff; border:1px solid var(--border); border-radius:12px; opacity:0; transform:translateX(-10px); }
+    .lb-row.in { opacity:1; transform:translateX(0); transition:all .4s ease; }
+    .lb-rank { font-size:13px; font-weight:600; color:var(--grey-mid); text-align:center; }
+    .lb-av { width:34px; height:34px; border-radius:50%; background:var(--green-bg); border:1px solid var(--green-border); color:#2A6000; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; }
+    .lb-info { min-width:0; }
+    .lb-nm { font-size:13px; font-weight:600; }
+    .lb-track { height:5px; background:var(--grey-light); border-radius:3px; margin-top:6px; overflow:hidden; }
+    .lb-fill { height:100%; width:0; background:var(--green); border-radius:3px; transition:width .85s cubic-bezier(.2,.8,.2,1); }
+    .lb-val { font-size:18px; font-weight:500; letter-spacing:-.5px; white-space:nowrap; }
+    .lb-empty { max-width:640px; margin:34px auto; text-align:center; color:var(--grey); font-size:13px; }
+    @media (max-width:560px){ .lb-podium{ gap:8px; min-height:210px; } .podium-av{ width:52px;height:52px;font-size:16px; } }
+
     .client-block {
       margin-bottom: 12px;
       border: 1px solid var(--border);
@@ -624,6 +661,7 @@
       <div class="nav-tabs">
         <button class="nav-tab active" data-tab="dashboard">Dashboard</button>
         <button class="nav-tab" data-tab="prospects">Prospects</button>
+        <button class="nav-tab" data-tab="leaderboard">Leaderboard</button>
         <button class="nav-tab" data-tab="messages">Messages</button>
         <button class="nav-tab" data-tab="how">How it works</button>
       </div>
@@ -764,6 +802,21 @@
           <div class="no-results" id="noProspectResults">No prospects match this filter or search.</div>
         </div>
       </div>
+    </section>
+
+    <section id="leaderboard" class="view">
+      <div class="lb-switcher" id="lbSwitcher">
+        <button class="lb-tab active" data-metric="points">Overall</button>
+        <button class="lb-tab" data-metric="listed">Most listed</button>
+        <button class="lb-tab" data-metric="reached">Reached out</button>
+        <button class="lb-tab" data-metric="meetings">Meetings</button>
+        <button class="lb-tab" data-metric="proposals">Proposals</button>
+        <button class="lb-tab" data-metric="wins">Wins</button>
+      </div>
+      <div class="lb-caption" id="lbCaption"></div>
+      <div class="lb-podium" id="lbPodium"></div>
+      <div class="lb-list" id="lbList"></div>
+      <div class="lb-empty" id="lbEmpty" style="display:none">No one on the board yet — add a prospect and put your name as the owner to get on it.</div>
     </section>
 
     <section id="messages" class="view">
@@ -979,6 +1032,7 @@ Happy to grab 20 minutes if useful.
       views.forEach(view => view.classList.toggle('active', view.id === tabId));
       window.scrollTo({ top: 0, behavior: 'smooth' });
       history.replaceState(null,'','#'+tabId);
+      if (tabId === 'leaderboard' && typeof renderLeaderboard === 'function') { renderLeaderboard(); animateLeaderboard(); }
     }
 
     navTabButtons.forEach(btn => {
@@ -990,7 +1044,7 @@ Happy to grab 20 minutes if useful.
     });
 
     // Hash routing
-    const validReferralTabs = ['dashboard','prospects','messages','how'];
+    const validReferralTabs = ['dashboard','prospects','leaderboard','messages','how'];
     const initHash = window.location.hash.replace('#','');
     if(validReferralTabs.includes(initHash)) openTab(initHash);
     window.addEventListener('hashchange', () => {
@@ -1184,6 +1238,8 @@ Happy to grab 20 minutes if useful.
       refreshOwnerOptions();
       renderProspects();
       renderDashboard();
+      renderLeaderboard();
+      if (document.getElementById('leaderboard').classList.contains('active')) animateLeaderboard();
     }
 
     /* ============ Filters + search ============ */
@@ -1291,6 +1347,116 @@ Happy to grab 20 minutes if useful.
         if (t < 150) requestAnimationFrame(tick); else c.remove();
       })();
     }
+
+    /* ============ Leaderboard ============ */
+    const STATUS_POINTS = { identified: 1, reached: 2, 'no-response': 2, responded: 3, meeting: 5, proposal: 8, won: 15 };
+    const LB_META = {
+      points:    { label: 'Overall',     caption: 'Weighted score so wins rise to the top — Listed 1 · Reached 2 · Replied 3 · Meeting 5 · Proposal 8 · Win 15.', suffix: 'pts' },
+      listed:    { label: 'Most listed',  caption: 'Who has put forward the most connections.', suffix: '' },
+      reached:   { label: 'Reached out',  caption: 'Who has actually made contact — not just listed names.', suffix: '' },
+      meetings:  { label: 'Meetings',     caption: 'Connections that turned into a meeting in the diary.', suffix: '' },
+      proposals: { label: 'Proposals',    caption: 'Connections that progressed to a proposal.', suffix: '' },
+      wins:      { label: 'Wins',         caption: 'New clients won. The one that really counts. 🏆', suffix: '' }
+    };
+    let lbMetric = 'points';
+
+    function lbInitials(name) {
+      const parts = name.trim().split(/\s+/);
+      return (((parts[0] || '')[0] || '') + ((parts[1] || '')[0] || '')).toUpperCase();
+    }
+
+    function computeLeaderboard() {
+      const map = {};
+      state.prospects.forEach(p => {
+        const o = p.owner; if (!o) return;
+        if (!map[o]) map[o] = { owner: o, listed: 0, reached: 0, meetings: 0, proposals: 0, wins: 0, points: 0 };
+        const m = map[o], s = p.status;
+        m.listed++;
+        if (['reached', 'responded', 'no-response', 'meeting', 'proposal', 'won'].includes(s)) m.reached++;
+        if (['meeting', 'proposal', 'won'].includes(s)) m.meetings++;
+        if (['proposal', 'won'].includes(s)) m.proposals++;
+        if (s === 'won') m.wins++;
+        m.points += STATUS_POINTS[s] || 1;
+      });
+      return Object.values(map);
+    }
+
+    function renderLeaderboard() {
+      const data = computeLeaderboard();
+      const meta = LB_META[lbMetric];
+      document.getElementById('lbCaption').textContent = meta.caption;
+      const sorted = data.slice().sort((a, b) => b[lbMetric] - a[lbMetric] || b.points - a.points || b.listed - a.listed);
+      const podium = document.getElementById('lbPodium');
+      const listEl = document.getElementById('lbList');
+      const emptyEl = document.getElementById('lbEmpty');
+      if (!sorted.length) { podium.innerHTML = ''; listEl.innerHTML = ''; emptyEl.style.display = 'block'; return; }
+      emptyEl.style.display = 'none';
+      const max = Math.max(1, sorted[0][lbMetric]);
+      const top3 = sorted.slice(0, 3);
+      const order = [top3[1], top3[0], top3[2]].filter(Boolean);
+      podium.innerHTML = order.map(p => {
+        const rank = sorted.indexOf(p) + 1;
+        const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉';
+        const crown = rank === 1 ? '<div class="crown">👑</div>' : '';
+        return `<div class="podium-slot podium-rank-${rank}" data-val="${p[lbMetric]}">
+          <div class="podium-av">${crown}${esc(lbInitials(p.owner))}<div class="medal">${medal}</div></div>
+          <div class="podium-name">${esc(p.owner)}</div>
+          <div class="podium-val"><span class="pv-num">0</span>${meta.suffix ? ' ' + meta.suffix : ''}</div>
+          <div class="podium-bar">${rank === 1 ? '★' : ''}</div>
+        </div>`;
+      }).join('');
+      const rest = sorted.slice(3);
+      listEl.innerHTML = rest.map((p, i) => {
+        const rank = i + 4;
+        const pct = Math.round(p[lbMetric] / max * 100);
+        return `<div class="lb-row" data-pct="${pct}" data-val="${p[lbMetric]}">
+          <div class="lb-rank">${rank}</div>
+          <div class="lb-av">${esc(lbInitials(p.owner))}</div>
+          <div class="lb-info"><div class="lb-nm">${esc(p.owner)}</div><div class="lb-track"><div class="lb-fill"></div></div></div>
+          <div class="lb-val"><span class="lv-num">0</span><span style="font-size:11px;color:var(--grey)">${meta.suffix ? ' ' + meta.suffix : ''}</span></div>
+        </div>`;
+      }).join('');
+    }
+
+    function countUp(el, to, dur) {
+      const start = performance.now();
+      (function step(now) {
+        const t = Math.min(1, (now - start) / dur);
+        el.textContent = Math.round(t * to);
+        if (t < 1) requestAnimationFrame(step);
+      })(start);
+    }
+
+    function animateLeaderboard() {
+      document.querySelectorAll('.podium-slot').forEach((s, i) => {
+        setTimeout(() => {
+          s.classList.add('in');
+          const num = s.querySelector('.pv-num');
+          if (num) countUp(num, parseInt(s.dataset.val || '0', 10), 700);
+        }, 120 * i);
+      });
+      document.querySelectorAll('.lb-row').forEach((r, i) => {
+        setTimeout(() => {
+          r.classList.add('in');
+          const fill = r.querySelector('.lb-fill'); if (fill) fill.style.width = (r.dataset.pct || 0) + '%';
+          const num = r.querySelector('.lv-num'); if (num) countUp(num, parseInt(r.dataset.val || '0', 10), 700);
+        }, 280 + 90 * i);
+      });
+      if (computeLeaderboard().length && !sessionStorage.getItem('lb_confetti')) {
+        sessionStorage.setItem('lb_confetti', '1');
+        setTimeout(celebrate, 250);
+      }
+    }
+
+    document.querySelectorAll('.lb-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.lb-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        lbMetric = tab.dataset.metric;
+        renderLeaderboard();
+        animateLeaderboard();
+      });
+    });
 
     /* ============ Init ============ */
     setChannel('linkedin');
