@@ -1434,7 +1434,7 @@ Happy to grab 20 minutes if useful.
         const medal = p.rank === 1 ? '🥇' : p.rank === 2 ? '🥈' : '🥉';
         const crown = p.rank === 1 ? '<div class="crown">👑</div>' : '';
         const isMe = meLc && p.owner.toLowerCase() === meLc;
-        return `<div class="podium-slot podium-rank-${p.rank}" data-owner="${esc(p.owner)}" data-val="${p[lbMetric]}">
+        return `<div class="podium-slot${animate ? '' : ' in'} podium-rank-${p.rank}" data-owner="${esc(p.owner)}" data-val="${p[lbMetric]}">
           <div class="podium-av">${crown}${esc(lbInitials(p.owner))}<div class="medal">${medal}</div></div>
           <div class="podium-name">${esc(p.owner)}${isMe ? ' <span class="me-badge">You</span>' : ''}</div>
           <div class="podium-val"><span class="pv-num">${animate ? 0 : p[lbMetric]}</span>${sfx}</div>
