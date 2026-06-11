@@ -320,6 +320,20 @@
     .lb-empty { max-width:640px; margin:34px auto; text-align:center; color:var(--grey); font-size:13px; }
     @media (max-width:560px){ .lb-podium{ gap:8px; min-height:210px; } .podium-av{ width:52px;height:52px;font-size:16px; } }
 
+    .lb-toolbar { max-width:640px; margin:0 auto 14px; display:flex; gap:8px; align-items:center; }
+    .lb-search-wrap { flex:1; display:flex; align-items:center; gap:8px; background:#fff; border:1px solid var(--border-strong); border-radius:20px; padding:8px 14px; }
+    .lb-search-wrap svg { color:var(--grey); flex:none; }
+    .lb-search-wrap input { border:none; background:transparent; font-family:inherit; font-size:13px; color:var(--black); width:100%; outline:none; }
+    .lb-findme { border:1px solid var(--black); background:var(--black); color:var(--green); font-family:inherit; font-size:12px; font-weight:500; padding:9px 16px; border-radius:20px; cursor:pointer; white-space:nowrap; transition:opacity .14s; }
+    .lb-findme:hover { opacity:.85; }
+    .me-badge { display:inline-block; font-size:9px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; background:var(--green); color:var(--black); padding:1px 6px; border-radius:8px; margin-left:6px; vertical-align:1px; }
+    .lb-row.is-me { border-color:var(--green-border); background:var(--green-bg); }
+    .lb-row.highlight, .podium-slot.highlight .podium-av { animation:lbpulse 1.1s ease 2; }
+    @keyframes lbpulse { 0%,100%{box-shadow:0 0 0 0 rgba(139,255,87,0)} 50%{box-shadow:0 0 0 5px rgba(139,255,87,.55)} }
+    .lb-expander { border:1px dashed var(--border-strong); background:#fff; color:var(--grey); font-family:inherit; font-size:12px; font-weight:500; padding:11px; border-radius:12px; cursor:pointer; transition:all .14s; }
+    .lb-expander:hover { color:var(--black); border-color:var(--black); }
+    .lb-note { text-align:center; color:var(--grey); font-size:13px; padding:14px; }
+
     .client-block {
       margin-bottom: 12px;
       border: 1px solid var(--border);
@@ -815,6 +829,13 @@
       </div>
       <div class="lb-caption" id="lbCaption"></div>
       <div class="lb-podium" id="lbPodium"></div>
+      <div class="lb-toolbar" id="lbToolbar" style="display:none">
+        <div class="lb-search-wrap">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+          <input id="lbSearch" placeholder="Search the board by name…" autocomplete="off" />
+        </div>
+        <button class="lb-findme" id="lbFindMe">Find me</button>
+      </div>
       <div class="lb-list" id="lbList"></div>
       <div class="lb-empty" id="lbEmpty" style="display:none">No one on the board yet — add a prospect and put your name as the owner to get on it.</div>
     </section>
@@ -1032,7 +1053,7 @@ Happy to grab 20 minutes if useful.
       views.forEach(view => view.classList.toggle('active', view.id === tabId));
       window.scrollTo({ top: 0, behavior: 'smooth' });
       history.replaceState(null,'','#'+tabId);
-      if (tabId === 'leaderboard' && typeof renderLeaderboard === 'function') { renderLeaderboard(); animateLeaderboard(); }
+      if (tabId === 'leaderboard' && typeof animateLeaderboard === 'function') { animateLeaderboard(); }
     }
 
     navTabButtons.forEach(btn => {
@@ -1309,6 +1330,7 @@ Happy to grab 20 minutes if useful.
           if (status === 'won') celebrate();
         }
         await loadData();
+        setMe(payload.owner);
         closeModal();
         addProspectForm.reset();
         showToast(editingId ? 'Prospect updated' : 'Prospect added');
@@ -1359,6 +1381,13 @@ Happy to grab 20 minutes if useful.
       wins:      { label: 'Wins',         caption: 'New clients won. The one that really counts. 🏆', suffix: '' }
     };
     let lbMetric = 'points';
+    let lbSearch = '';
+    let lbExpanded = false;
+    let lbAnimateNext = false;
+    const LB_COLLAPSE = 10;
+
+    function getMe() { try { return localStorage.getItem('referrals_me') || ''; } catch (e) { return ''; } }
+    function setMe(n) { try { localStorage.setItem('referrals_me', n); } catch (e) { } }
 
     function lbInitials(name) {
       const parts = name.trim().split(/\s+/);
@@ -1382,40 +1411,64 @@ Happy to grab 20 minutes if useful.
     }
 
     function renderLeaderboard() {
-      const data = computeLeaderboard();
+      const animate = lbAnimateNext; lbAnimateNext = false;
       const meta = LB_META[lbMetric];
+      const meLc = getMe().toLowerCase();
       document.getElementById('lbCaption').textContent = meta.caption;
-      const sorted = data.slice().sort((a, b) => b[lbMetric] - a[lbMetric] || b.points - a.points || b.listed - a.listed);
+      const sorted = computeLeaderboard().sort((a, b) => b[lbMetric] - a[lbMetric] || b.points - a.points || b.listed - a.listed);
+      const ranked = sorted.map((p, i) => ({ ...p, rank: i + 1 }));
       const podium = document.getElementById('lbPodium');
       const listEl = document.getElementById('lbList');
       const emptyEl = document.getElementById('lbEmpty');
-      if (!sorted.length) { podium.innerHTML = ''; listEl.innerHTML = ''; emptyEl.style.display = 'block'; return; }
+      const toolbar = document.getElementById('lbToolbar');
+      const sfx = meta.suffix ? ' ' + meta.suffix : '';
+
+      if (!ranked.length) { podium.innerHTML = ''; listEl.innerHTML = ''; toolbar.style.display = 'none'; emptyEl.style.display = 'block'; return; }
       emptyEl.style.display = 'none';
-      const max = Math.max(1, sorted[0][lbMetric]);
-      const top3 = sorted.slice(0, 3);
+      const max = Math.max(1, ranked[0][lbMetric]);
+
+      // Podium (always top 3)
+      const top3 = ranked.slice(0, 3);
       const order = [top3[1], top3[0], top3[2]].filter(Boolean);
       podium.innerHTML = order.map(p => {
-        const rank = sorted.indexOf(p) + 1;
-        const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉';
-        const crown = rank === 1 ? '<div class="crown">👑</div>' : '';
-        return `<div class="podium-slot podium-rank-${rank}" data-val="${p[lbMetric]}">
+        const medal = p.rank === 1 ? '🥇' : p.rank === 2 ? '🥈' : '🥉';
+        const crown = p.rank === 1 ? '<div class="crown">👑</div>' : '';
+        const isMe = meLc && p.owner.toLowerCase() === meLc;
+        return `<div class="podium-slot podium-rank-${p.rank}" data-owner="${esc(p.owner)}" data-val="${p[lbMetric]}">
           <div class="podium-av">${crown}${esc(lbInitials(p.owner))}<div class="medal">${medal}</div></div>
-          <div class="podium-name">${esc(p.owner)}</div>
-          <div class="podium-val"><span class="pv-num">0</span>${meta.suffix ? ' ' + meta.suffix : ''}</div>
-          <div class="podium-bar">${rank === 1 ? '★' : ''}</div>
+          <div class="podium-name">${esc(p.owner)}${isMe ? ' <span class="me-badge">You</span>' : ''}</div>
+          <div class="podium-val"><span class="pv-num">${animate ? 0 : p[lbMetric]}</span>${sfx}</div>
+          <div class="podium-bar">${p.rank === 1 ? '★' : ''}</div>
         </div>`;
       }).join('');
-      const rest = sorted.slice(3);
-      listEl.innerHTML = rest.map((p, i) => {
-        const rank = i + 4;
+
+      // List (ranks 4+), with search + collapse
+      let rest = ranked.slice(3);
+      toolbar.style.display = rest.length ? 'flex' : 'none';
+      const q = lbSearch.trim().toLowerCase();
+      if (q) rest = rest.filter(p => p.owner.toLowerCase().includes(q));
+      const collapsed = (!q && !lbExpanded && rest.length > LB_COLLAPSE);
+      const shown = collapsed ? rest.slice(0, LB_COLLAPSE) : rest;
+
+      let html = shown.map((p, i) => {
         const pct = Math.round(p[lbMetric] / max * 100);
-        return `<div class="lb-row" data-pct="${pct}" data-val="${p[lbMetric]}">
-          <div class="lb-rank">${rank}</div>
+        const isMe = meLc && p.owner.toLowerCase() === meLc;
+        return `<div class="lb-row${animate ? '' : ' in'}${isMe ? ' is-me' : ''}" data-owner="${esc(p.owner)}" data-pct="${pct}" data-val="${p[lbMetric]}">
+          <div class="lb-rank">${p.rank}</div>
           <div class="lb-av">${esc(lbInitials(p.owner))}</div>
-          <div class="lb-info"><div class="lb-nm">${esc(p.owner)}</div><div class="lb-track"><div class="lb-fill"></div></div></div>
-          <div class="lb-val"><span class="lv-num">0</span><span style="font-size:11px;color:var(--grey)">${meta.suffix ? ' ' + meta.suffix : ''}</span></div>
+          <div class="lb-info"><div class="lb-nm">${esc(p.owner)}${isMe ? ' <span class="me-badge">You</span>' : ''}</div><div class="lb-track"><div class="lb-fill" style="width:${animate ? 0 : pct + '%'}"></div></div></div>
+          <div class="lb-val"><span class="lv-num">${animate ? 0 : p[lbMetric]}</span><span style="font-size:11px;color:var(--grey)">${sfx}</span></div>
         </div>`;
       }).join('');
+
+      if (collapsed) html += `<button class="lb-expander" id="lbExpander">Show all ${rest.length} below the podium ↓</button>`;
+      if (q && !shown.length) html += `<div class="lb-note">No one on the board matches “${esc(lbSearch)}”.</div>`;
+      listEl.innerHTML = html;
+
+      const exp = document.getElementById('lbExpander');
+      if (exp) exp.onclick = () => { lbExpanded = true; lbAnimateNext = true; renderLeaderboard(); };
+
+      if (animate) requestAnimationFrame(runEntrance);
     }
 
     function countUp(el, to, dur) {
@@ -1427,7 +1480,7 @@ Happy to grab 20 minutes if useful.
       })(start);
     }
 
-    function animateLeaderboard() {
+    function runEntrance() {
       document.querySelectorAll('.podium-slot').forEach((s, i) => {
         setTimeout(() => {
           s.classList.add('in');
@@ -1435,12 +1488,14 @@ Happy to grab 20 minutes if useful.
           if (num) countUp(num, parseInt(s.dataset.val || '0', 10), 700);
         }, 120 * i);
       });
+      // Cap the cascade so long boards don't crawl in: stagger first 12, rest snap in together
       document.querySelectorAll('.lb-row').forEach((r, i) => {
+        const delay = 260 + 80 * Math.min(i, 12);
         setTimeout(() => {
           r.classList.add('in');
           const fill = r.querySelector('.lb-fill'); if (fill) fill.style.width = (r.dataset.pct || 0) + '%';
           const num = r.querySelector('.lv-num'); if (num) countUp(num, parseInt(r.dataset.val || '0', 10), 700);
-        }, 280 + 90 * i);
+        }, delay);
       });
       if (computeLeaderboard().length && !sessionStorage.getItem('lb_confetti')) {
         sessionStorage.setItem('lb_confetti', '1');
@@ -1448,15 +1503,37 @@ Happy to grab 20 minutes if useful.
       }
     }
 
+    function animateLeaderboard() { lbAnimateNext = true; renderLeaderboard(); }
+
+    function pulse(el) { el.classList.add('highlight'); setTimeout(() => el.classList.remove('highlight'), 2300); }
+
+    function findMe() {
+      const me = getMe();
+      if (!me) { const s = document.getElementById('lbSearch'); s.focus(); showToast('Type your name to find your spot'); return; }
+      const lc = me.toLowerCase();
+      const onBoard = computeLeaderboard().some(p => p.owner.toLowerCase() === lc);
+      if (!onBoard) { showToast(`${me}, you're not on the board yet — add a prospect`); return; }
+      const pod = [...document.querySelectorAll('.podium-slot')].find(s => (s.dataset.owner || '').toLowerCase() === lc);
+      if (pod) { pod.scrollIntoView({ behavior: 'smooth', block: 'center' }); pulse(pod); return; }
+      lbExpanded = true; lbSearch = ''; document.getElementById('lbSearch').value = '';
+      renderLeaderboard();
+      setTimeout(() => {
+        const row = [...document.querySelectorAll('.lb-row')].find(r => (r.dataset.owner || '').toLowerCase() === lc);
+        if (row) { row.scrollIntoView({ behavior: 'smooth', block: 'center' }); pulse(row); }
+      }, 80);
+    }
+
     document.querySelectorAll('.lb-tab').forEach(tab => {
       tab.addEventListener('click', () => {
         document.querySelectorAll('.lb-tab').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
         lbMetric = tab.dataset.metric;
-        renderLeaderboard();
+        lbExpanded = false; lbSearch = ''; const s = document.getElementById('lbSearch'); if (s) s.value = '';
         animateLeaderboard();
       });
     });
+    document.getElementById('lbSearch').addEventListener('input', e => { lbSearch = e.target.value; renderLeaderboard(); });
+    document.getElementById('lbFindMe').addEventListener('click', findMe);
 
     /* ============ Init ============ */
     setChannel('linkedin');
