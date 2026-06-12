@@ -334,6 +334,22 @@
     .lb-expander:hover { color:var(--black); border-color:var(--black); }
     .lb-note { text-align:center; color:var(--grey); font-size:13px; padding:14px; }
 
+    /* ---------- Welcome modal ---------- */
+    .welcome-modal { max-width: 540px; }
+    .welcome-intro { font-size: 13px; color: var(--grey-mid); line-height: 1.55; margin: 0 0 16px; }
+    .welcome-list { list-style: none; padding: 0; margin: 0 0 20px; display: flex; flex-direction: column; gap: 11px; }
+    .welcome-list li { font-size: 13px; color: var(--black); line-height: 1.5; display: flex; gap: 10px; align-items: baseline; }
+    .wl-tag { flex: none; display: inline-block; min-width: 94px; font-size: 11px; font-weight: 600; color: var(--black); background: var(--cream); border: 1px solid var(--border-strong); border-radius: 6px; padding: 3px 8px; text-align: center; }
+    .welcome-cta { background: var(--green-bg); border: 1px solid var(--green-border); border-radius: 12px; padding: 16px; text-align: center; }
+    .wc-head { font-size: 14px; font-weight: 600; color: var(--black); margin-bottom: 4px; }
+    .wc-sub { font-size: 12px; color: var(--grey-mid); margin-bottom: 12px; }
+    .wc-keys { display: inline-flex; align-items: center; gap: 10px; background: #fff; border: 1px solid var(--border-strong); border-radius: 10px; padding: 9px 14px; cursor: pointer; font-family: inherit; font-size: 13px; color: var(--black); transition: all .14s; }
+    .wc-keys:hover { border-color: var(--black); }
+    .wc-keys kbd { font-family: inherit; font-size: 13px; font-weight: 600; background: var(--black); color: var(--green); border-radius: 6px; padding: 4px 9px; }
+    .wc-keys.nudge { animation: wcnudge .5s ease 2; }
+    @keyframes wcnudge { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+    @media (max-width:480px){ .wl-tag{ min-width:80px; } }
+
     .client-block {
       margin-bottom: 12px;
       border: 1px solid var(--border);
@@ -980,6 +996,34 @@ Happy to grab 20 minutes if useful.
     </section>
   </div>
 
+  <div class="modal-backdrop" id="welcomeModal">
+    <div class="modal welcome-modal" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
+      <div class="modal-head">
+        <div>
+          <div class="modal-title" id="welcomeTitle">Welcome to the Referral Hub 👋</div>
+          <div class="modal-sub">Your network is one of Jungle's biggest growth levers — this is where we put it to work.</div>
+        </div>
+        <button class="modal-close" id="closeWelcome" aria-label="Close">×</button>
+      </div>
+      <p class="welcome-intro">Everything you need to turn the people you already know into warm introductions lives right here. Here's what's on the page:</p>
+      <ul class="welcome-list">
+        <li><span class="wl-tag">Dashboard</span> Your momentum at a glance — what's been listed, contacted and booked.</li>
+        <li><span class="wl-tag">Prospects</span> Add the people you know and track them from intro through to win.</li>
+        <li><span class="wl-tag">Leaderboard</span> A bit of friendly competition 🏆 — who's listing, reaching out and winning.</li>
+        <li><span class="wl-tag">Messages</span> A ready-to-go message bank — copy it, make it sound like you, send in two minutes.</li>
+        <li><span class="wl-tag">How it works</span> The simple habit we're building: think of two people a month.</li>
+      </ul>
+      <div class="welcome-cta">
+        <div class="wc-head">First things first — bookmark this page 🔖</div>
+        <div class="wc-sub">So it's always one click away whenever a name springs to mind. Hit the keys below:</div>
+        <button class="wc-keys" id="bookmarkBtn"><kbd id="bmKeys">⌘ + D</kbd> <span>Bookmark this page</span></button>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-save" id="welcomeGo">Got it — let's go</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-backdrop" id="addProspectModal">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="addProspectTitle">
       <div class="modal-head">
@@ -1542,6 +1586,29 @@ Happy to grab 20 minutes if useful.
 <script>
 
   const GATE_PASSWORD = 'massive';
+
+  function showWelcomeIfNew() {
+    try { if (localStorage.getItem('referrals_welcomed') === '1') return; } catch (e) { }
+    const m = document.getElementById('welcomeModal');
+    if (!m) return;
+    const plat = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || navigator.userAgent || '';
+    const isMac = /Mac|iPhone|iPad|iPod/i.test(plat);
+    document.getElementById('bmKeys').textContent = isMac ? '⌘ + D' : 'Ctrl + D';
+    m.classList.add('open');
+  }
+  function dismissWelcome() {
+    try { localStorage.setItem('referrals_welcomed', '1'); } catch (e) { }
+    const m = document.getElementById('welcomeModal');
+    if (m) m.classList.remove('open');
+  }
+  document.getElementById('welcomeGo').addEventListener('click', dismissWelcome);
+  document.getElementById('closeWelcome').addEventListener('click', dismissWelcome);
+  document.getElementById('welcomeModal').addEventListener('click', e => { if (e.target.id === 'welcomeModal') dismissWelcome(); });
+  document.getElementById('bookmarkBtn').addEventListener('click', () => {
+    const btn = document.getElementById('bookmarkBtn');
+    btn.classList.remove('nudge'); void btn.offsetWidth; btn.classList.add('nudge');
+  });
+
   function checkGate() {
     const val = document.getElementById('gate-input').value;
     if (val === GATE_PASSWORD) {
@@ -1549,6 +1616,7 @@ Happy to grab 20 minutes if useful.
       const overlay = document.getElementById('gate-overlay');
       overlay.classList.add('hidden');
       setTimeout(() => overlay.remove(), 350);
+      setTimeout(showWelcomeIfNew, 500);
     } else {
       const input = document.getElementById('gate-input');
       const err = document.getElementById('gate-error');
@@ -1559,6 +1627,7 @@ Happy to grab 20 minutes if useful.
   }
   if (sessionStorage.getItem('jc_auth') === '1') {
     document.getElementById('gate-overlay').remove();
+    setTimeout(showWelcomeIfNew, 300);
   } else {
     document.getElementById('gate-input').focus();
   }
