@@ -1588,7 +1588,7 @@ Happy to grab 20 minutes if useful.
   const GATE_PASSWORD = 'massive';
 
   function showWelcomeIfNew() {
-    try { if (localStorage.getItem('referrals_welcomed') === '1') return; } catch (e) { }
+    try { if (sessionStorage.getItem('referrals_welcomed') === '1') return; } catch (e) { }
     const m = document.getElementById('welcomeModal');
     if (!m) return;
     const plat = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || navigator.userAgent || '';
@@ -1597,7 +1597,7 @@ Happy to grab 20 minutes if useful.
     m.classList.add('open');
   }
   function dismissWelcome() {
-    try { localStorage.setItem('referrals_welcomed', '1'); } catch (e) { }
+    try { sessionStorage.setItem('referrals_welcomed', '1'); } catch (e) { }
     const m = document.getElementById('welcomeModal');
     if (m) m.classList.remove('open');
   }
