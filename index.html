@@ -265,6 +265,8 @@
     .pill-warm { background: #FFF3E0; color: #8A4500; border: 1px solid rgba(245,166,35,0.3); }
     .pill-cool { background: #E0F0FF; color: #0A5A8A; border: 1px solid rgba(74,144,217,0.3); }
     .pill-mapping { background: #EFEDE7; color: #6A6960; border: 1px solid var(--border); font-size: 9px; letter-spacing: 0.3px; }
+    .pill-agency { background: #E8F0FF; color: #1A4DB5; border: 1px solid rgba(26,77,181,0.2); font-size: 10px; }
+    .pill-partnerships { background: #F0E8FF; color: #6B1AB5; border: 1px solid rgba(107,26,181,0.2); font-size: 10px; }
 
     .row-actions { display: flex; gap: 4px; justify-content: flex-end; opacity: 0; transition: opacity 0.12s; }
     .proj-row:hover .row-actions { opacity: 1; }
@@ -391,7 +393,7 @@
 
     .proj-row {
       display: grid;
-      grid-template-columns: 28px 1.2fr 108px 100px 104px 124px 64px 66px;
+      grid-template-columns: 28px 1.2fr 108px 100px 90px 104px 124px 64px 66px;
       align-items: center; gap: 10px;
       padding: 11px 18px;
       border-bottom: 1px solid var(--border);
@@ -405,7 +407,7 @@
       font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px;
       color: var(--grey); padding: 8px 18px;
       display: grid;
-      grid-template-columns: 28px 1.2fr 108px 100px 104px 124px 64px 66px;
+      grid-template-columns: 28px 1.2fr 108px 100px 90px 104px 124px 64px 66px;
       gap: 10px;
       background: #fafaf8;
       border-bottom: 1px solid var(--border);
@@ -826,6 +828,7 @@
             <div>Contact</div>
             <div>Company</div>
             <div>Added by</div>
+            <div>Team</div>
             <div>Relationship</div>
             <div>Status</div>
             <div>Last touch</div>
@@ -1059,6 +1062,14 @@ Happy to grab 20 minutes if useful.
             <datalist id="ownerOptions"></datalist>
           </div>
           <div class="field">
+            <label for="prospectTeam">Team</label>
+            <select id="prospectTeam" name="prospectTeam" required>
+              <option value="">Select a team…</option>
+              <option value="agency">Agency</option>
+              <option value="partnerships">Partnerships</option>
+            </select>
+          </div>
+          <div class="field">
             <label for="relationshipStrength">Relationship strength</label>
             <select id="relationshipStrength" name="relationshipStrength">
               <option value="">Not set</option>
@@ -1245,6 +1256,7 @@ Happy to grab 20 minutes if useful.
           <div><div class="proj-name-text">${headline}</div><div class="proj-note">${note}</div></div>
           <div class="proj-note">${esc(p.company)}</div>
           <div class="proj-note">${esc(p.owner || '–')}</div>
+          <div>${p.team ? `<span class="pill pill-${p.team}">${p.team === 'agency' ? 'Agency' : 'Partnerships'}</span>` : '<span class="proj-note">–</span>'}</div>
           <div>${strengthPill(p)}</div>
           <div>${statusPill(p.status)}</div>
           <div class="proj-note">${fmtDate(p.last_touch)}</div>
@@ -1345,6 +1357,7 @@ Happy to grab 20 minutes if useful.
       document.getElementById('prospectName').value = editing ? (editing.contact_name || '') : '';
       document.getElementById('companyName').value = editing ? (editing.company || '') : '';
       document.getElementById('ownerName').value = editing ? (editing.owner || '') : '';
+      document.getElementById('prospectTeam').value = editing ? (editing.team || '') : '';
       document.getElementById('relationshipStrength').value = editing ? (editing.relationship_strength || '') : '';
       document.getElementById('prospectStatus').value = editing ? (editing.status || 'identified') : 'identified';
       document.getElementById('meetingOwner').value = editing ? (editing.meeting_owner || '') : '';
@@ -1375,6 +1388,7 @@ Happy to grab 20 minutes if useful.
         contact_name: document.getElementById('prospectName').value.trim() || null,
         company: company,
         owner: tidyName(ownerRaw),
+        team: document.getElementById('prospectTeam').value || null,
         relationship_strength: document.getElementById('relationshipStrength').value || null,
         status: status,
         meeting_owner: document.getElementById('meetingOwner').value.trim() || null,
