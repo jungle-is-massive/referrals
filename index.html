@@ -391,7 +391,7 @@
 
     .proj-row {
       display: grid;
-      grid-template-columns: 28px 1.2fr 108px 104px 124px 64px 66px;
+      grid-template-columns: 28px 1.2fr 108px 100px 104px 124px 64px 66px;
       align-items: center; gap: 10px;
       padding: 11px 18px;
       border-bottom: 1px solid var(--border);
@@ -405,7 +405,7 @@
       font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px;
       color: var(--grey); padding: 8px 18px;
       display: grid;
-      grid-template-columns: 28px 1.2fr 108px 104px 124px 64px 66px;
+      grid-template-columns: 28px 1.2fr 108px 100px 104px 124px 64px 66px;
       gap: 10px;
       background: #fafaf8;
       border-bottom: 1px solid var(--border);
@@ -825,6 +825,7 @@
             <div>#</div>
             <div>Contact</div>
             <div>Company</div>
+            <div>Added by</div>
             <div>Relationship</div>
             <div>Status</div>
             <div>Last touch</div>
@@ -1078,6 +1079,10 @@ Happy to grab 20 minutes if useful.
               <option value="won">New Client Won</option>
             </select>
           </div>
+          <div class="field" id="meetingOwnerField" style="display:none">
+            <label for="meetingOwner">Who took the meeting <span style="color:var(--grey);font-weight:400">(Jungle side)</span></label>
+            <input id="meetingOwner" name="meetingOwner" type="text" placeholder="e.g. Mal, Jade…" />
+          </div>
           <div class="field span-2">
             <label for="relationshipContext">Relationship context</label>
             <textarea id="relationshipContext" name="relationshipContext" placeholder="How do you know them, and why are they worth reaching out to?"></textarea>
@@ -1239,6 +1244,7 @@ Happy to grab 20 minutes if useful.
           <div class="proj-index">${idx}</div>
           <div><div class="proj-name-text">${headline}</div><div class="proj-note">${note}</div></div>
           <div class="proj-note">${esc(p.company)}</div>
+          <div class="proj-note">${esc(p.owner || '–')}</div>
           <div>${strengthPill(p)}</div>
           <div>${statusPill(p.status)}</div>
           <div class="proj-note">${fmtDate(p.last_touch)}</div>
@@ -1341,10 +1347,16 @@ Happy to grab 20 minutes if useful.
       document.getElementById('ownerName').value = editing ? (editing.owner || '') : '';
       document.getElementById('relationshipStrength').value = editing ? (editing.relationship_strength || '') : '';
       document.getElementById('prospectStatus').value = editing ? (editing.status || 'identified') : 'identified';
+      document.getElementById('meetingOwner').value = editing ? (editing.meeting_owner || '') : '';
+      document.getElementById('meetingOwnerField').style.display = (editing && ['meeting','proposal','won'].includes(editing.status)) ? 'block' : 'none';
       document.getElementById('relationshipContext').value = editing ? (editing.context || '') : '';
       addProspectModal.classList.add('open');
     }
     function closeModal() { addProspectModal.classList.remove('open'); state.editingId = null; }
+    document.getElementById('prospectStatus').addEventListener('change', e => {
+      const showMeeting = ['meeting','proposal','won'].includes(e.target.value);
+      document.getElementById('meetingOwnerField').style.display = showMeeting ? 'block' : 'none';
+    });
     document.getElementById('openAddProspectTop').addEventListener('click', () => openModal(null));
     document.querySelectorAll('.open-add-prospect').forEach(b => b.addEventListener('click', () => openModal(null)));
     document.getElementById('closeAddProspect').addEventListener('click', closeModal);
@@ -1365,6 +1377,7 @@ Happy to grab 20 minutes if useful.
         owner: tidyName(ownerRaw),
         relationship_strength: document.getElementById('relationshipStrength').value || null,
         status: status,
+        meeting_owner: document.getElementById('meetingOwner').value.trim() || null,
         context: document.getElementById('relationshipContext').value.trim() || null,
         updated_at: new Date().toISOString()
       };
@@ -1380,6 +1393,12 @@ Happy to grab 20 minutes if useful.
           payload.last_touch = ACTIONED.includes(status) ? new Date().toISOString().slice(0, 10) : null;
           await sbInsert(payload);
           if (status === 'won') celebrate();
+          // Slack new-prospect notification
+          const slackMsg = `➕ *${tidyName(ownerRaw)}* just added *${company}* to the referral hub.${payload.contact_name ? ' Contact: ' + payload.contact_name + '.' : ''}`;
+          fetch('https://hook.eu1.make.com/5xs2b39yi0sbw9s4j9iq4t6jxeoey5ms', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ id: 'new', owner: tidyName(ownerRaw), company: company, contact_name: payload.contact_name, status: 'new_prospect' })
+          }).catch(() => {});
         }
         await loadData();
         setMe(payload.owner);
